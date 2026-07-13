@@ -1,6 +1,8 @@
 # Feedback on this take-home
 
-We iterate on this exercise based on candidate input. Please leave notes on anything that could be better. Nothing you write here counts against you. We read it separately from the assessment. Blunt is better than diplomatic.
+**This is a template, not a repo file.** If you'd like to give feedback, copy the sections below into your reply to the take-home email and fill them in there — don't commit it to your repo. Keeping it in the email means your feedback stays separate from the work we assess. It's optional.
+
+We iterate on this exercise based on candidate input. Notes on anything that could be better are welcome. Nothing you write counts against you. Blunt is better than diplomatic.
 
 ## What worked
 

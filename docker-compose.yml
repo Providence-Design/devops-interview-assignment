@@ -29,9 +29,12 @@ services:
       KC_DB_PASSWORD: keycloak
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
-      # Enable event storage so candidates who want to use events instead
-      # of the seeded lastLogin attribute have that option too.
-      KC_FEATURES: "admin-fine-grained-authz"
+      # Login events persist to Postgres because the realm sets eventsEnabled=true
+      # (see keycloak/realm-export.json), and `make up` seeds backdated LOGIN
+      # events so the event-based approach is usable too.
+      # Exposes /health/{ready,live} on the management port (9000) for the
+      # readiness/liveness probes you'll write in deploy/.
+      KC_HEALTH_ENABLED: "true"
     ports:
       - "8080:8080"
     volumes:
@@ -39,11 +42,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /realms/master HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+    # No container healthcheck here on purpose: this Keycloak image ships no
+    # curl/wget, so an in-container HTTP check would be a brittle hack. `make up`
+    # gates on readiness with a host-side curl poll instead (see Makefile).
 
 volumes:
   postgres_data:

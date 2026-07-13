@@ -2,9 +2,10 @@
 
 help:
 	@echo "Common commands:"
-	@echo "  make up           Start Keycloak + Postgres and import realm"
+	@echo "  make up           Start Keycloak + Postgres, import realm, seed login data"
 	@echo "  make down         Stop everything"
 	@echo "  make logs         Tail Keycloak logs"
+	@echo "  make seed         Re-seed lastLogin attributes + LOGIN events (relative to now)"
 	@echo "  make grant-roles  Grant realm-management roles to the service account"
 	@echo "  make reset        Full reset (down + delete volumes + up + grant-roles)"
 	@echo "  make kind-up      Create a local Kind cluster"
@@ -14,9 +15,13 @@ help:
 up:
 	docker compose up -d
 	@echo "Waiting for Keycloak to be ready..."
-	@until curl -sf http://localhost:8080/realms/master > /dev/null 2>&1; do sleep 2; done
+	@until curl -sf http://localhost:8080/realms/acme > /dev/null 2>&1; do sleep 2; done
+	@$(MAKE) seed
 	@echo "Keycloak is up at http://localhost:8080 (admin / admin)"
 	@echo "Now run: make grant-roles"
+
+seed:
+	./keycloak/seed.sh
 
 down:
 	docker compose down

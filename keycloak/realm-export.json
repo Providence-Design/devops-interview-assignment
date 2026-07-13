@@ -10,6 +10,18 @@
   ],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": true,
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}],\"unmanagedAttributePolicy\":\"ENABLED\"}"
+          ]
+        }
+      }
+    ]
+  },
   "clients": [
     {
       "clientId": "user-cleanup-service",
@@ -45,210 +57,111 @@
   ],
   "users": [
     {
+      "id": "9b7667a2-1e74-4d34-95af-988132b1875b",
       "username": "alice",
       "enabled": true,
       "email": "alice@acme.local",
       "emailVerified": true,
       "firstName": "Alice",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1766643226967"
-        ],
-        "note": [
-          "old \u2014 should be cleaned"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "a06ca1a9-daf8-4219-b8c0-311868309a29",
       "username": "bob",
       "enabled": true,
       "email": "bob@acme.local",
       "emailVerified": true,
       "firstName": "Bob",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1768371226967"
-        ],
-        "note": [
-          "old \u2014 should be cleaned"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "52bc2c45-c1cc-4c88-b354-af9fdae4c631",
       "username": "carol",
       "enabled": true,
       "email": "carol@acme.local",
       "emailVerified": true,
       "firstName": "Carol",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1770963226967"
-        ],
-        "note": [
-          "old \u2014 should be cleaned"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "8937fea5-08c7-45d9-82cb-86e36c426542",
       "username": "dave",
       "enabled": true,
       "email": "dave@acme.local",
       "emailVerified": true,
       "firstName": "Dave",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1773468826967"
-        ],
-        "note": [
-          "just over threshold \u2014 should be cleaned at default 120"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "6c175a9c-52ba-469b-b560-ca896225b20d",
       "username": "eve",
       "enabled": true,
       "email": "eve@acme.local",
       "emailVerified": true,
       "firstName": "Eve",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1773641626967"
-        ],
-        "note": [
-          "just under threshold \u2014 should NOT be cleaned at default 120"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "8b45823d-a818-478d-9c70-592d168c249a",
       "username": "frank",
       "enabled": true,
       "email": "frank@acme.local",
       "emailVerified": true,
       "firstName": "Frank",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1776147226967"
-        ],
-        "note": [
-          "recent \u2014 safe"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "61a7a5b6-8259-4e6a-a887-61c0f0fe6b03",
       "username": "grace",
       "enabled": true,
       "email": "grace@acme.local",
       "emailVerified": true,
       "firstName": "Grace",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1781331226967"
-        ],
-        "note": [
-          "recent \u2014 safe"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "21b075dd-87f2-45fd-99a7-4e5b6d22d87c",
       "username": "heidi",
       "enabled": true,
       "email": "heidi@acme.local",
       "emailVerified": true,
       "firstName": "Heidi",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1783491226967"
-        ],
-        "note": [
-          "very recent \u2014 safe"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     },
     {
+      "id": "6700192e-6778-4390-9c5c-dfc3f0398041",
       "username": "break-glass",
       "enabled": true,
       "email": "break-glass@acme.local",
       "emailVerified": true,
       "firstName": "Break-glass",
       "lastName": "User",
-      "attributes": {
-        "lastLogin": [
-          "1749363226967"
-        ],
-        "note": [
-          "admin-flavored \u2014 should be EXCLUDED even though very old"
-        ]
-      },
       "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": false
-        }
+        { "type": "password", "value": "password", "temporary": false }
       ]
     }
   ]

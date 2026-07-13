@@ -7,9 +7,9 @@ Design and ship a mechanism that cleans up users inactive for a configurable per
 1. Build cleanup logic against the seeded `acme` realm (see `keycloak/`)
 2. Ship a Helm chart or manifests in [`deploy/`](deploy/) so it can run on Kubernetes
 3. Write a one-page README in your repo covering the six points below
-4. Fill in [`FEEDBACK.md`](FEEDBACK.md) so we can improve this exercise
+4. Optionally, send us feedback on the exercise — copy the [`FEEDBACK.md`](FEEDBACK.md) template into your submission email (see [Submitting](#submitting))
 
-**Time cap:** up to three full days. With AI assistance the working version takes well under that. Use the remaining time to understand what you shipped well enough to walk us through it.
+**Time cap.** If you already know this stack, a working version is roughly a day. If parts are new to you, take up to three days — treat that as a hard ceiling, not a target. You have one calendar week to *submit*: we know you have a job and responsibilities outside this and that the exercise is unpaid, so the week is there to fit it around your schedule, not to spend a week on it. Polish is not required; spend any spare time understanding what you shipped well enough to walk us through it.
 
 ## Your one-page README covers
 
@@ -24,7 +24,7 @@ Design and ship a mechanism that cleans up users inactive for a configurable per
 
 ```bash
 cp .env.example .env
-make up            # Starts Keycloak + Postgres, imports the seeded realm
+make up            # Starts Keycloak + Postgres, imports the realm, seeds login data
 make grant-roles   # Grants the service account the realm-management roles
 ```
 
@@ -57,7 +57,7 @@ This is where we see your Helm and IaC fluency. Skipping it costs you a whole ru
 
 Allowed and encouraged. This role will involve working with AI tools going forward, so we want to see you use them well.
 
-In the walkthrough we ask specifically where AI helped, where you accepted its output, and where you pushed back. Prepare specific answers, not generic ones ("used ChatGPT for boilerplate" surfaces as a red flag in the walkthrough).
+In the walkthrough we ask where AI helped, where you accepted its output, and where you pushed back. This isn't a big part of the score — we just want a specific answer over a generic one. What matters far more is that you can explain and defend the code you shipped, whoever or whatever wrote the first draft.
 
 ## What's in this repo
 
@@ -77,13 +77,18 @@ In the walkthrough we ask specifically where AI helped, where you accepted its o
 
 ## About the seeded `lastLogin` attribute
 
-Keycloak does not natively expose "last login time" as a first-class field. In production you'd use event queries, a login-flow authenticator, or user federation. For this exercise we've seeded a `lastLogin` custom attribute on each user so you can focus on cleanup logic. See [`keycloak/README.md`](keycloak/README.md) for the users and their ages, and mention this simplification in your own README.
+Keycloak does not natively expose "last login time" as a first-class field. In production you'd use event queries, a login-flow authenticator, or user federation. For this exercise `make up` seeds a `lastLogin` custom attribute on each user (and a matching real `LOGIN` event, if you'd rather query events) so you can focus on cleanup logic. Ages are computed relative to now, so they don't go stale. See [`keycloak/README.md`](keycloak/README.md) for the users and their ages, and mention this simplification in your own README.
 
 ## Submitting
 
-Fork this repo, push your work, share the link. Zip is fine if forking is inconvenient. Fork is a small extra signal because the git history shows how you work.
+Push your work to a repo on your own GitHub account — fork this one or start a fresh repo (a fork's git history is a small extra signal, since it shows how you work). Zip is fine if a repo is inconvenient.
 
-We book the 60-minute walkthrough within a few working days of your submission.
+**Submit by replying to the take-home email thread with:**
+
+- a link to your GitHub repo
+- optionally, your feedback on this exercise — paste the [`FEEDBACK.md`](FEEDBACK.md) template into the email and fill it in there
+
+Keep feedback in the email, not in your repo: it stays separate from the work we assess, and it's genuinely useful to us. We book the 60-minute walkthrough within a few working days of your submission.
 
 ## Questions
 
@@ -97,4 +102,4 @@ Your submission is complete when:
 - [ ] `deploy/` contains an applyable Helm chart or manifest set
 - [ ] Your one-page README covers all six points above
 - [ ] The AI usage section is specific enough that we could pick which parts you wrote
-- [ ] `FEEDBACK.md` is filled in (optional but genuinely useful to us)
+- [ ] You've replied to the email thread with your repo link (and optionally the feedback template)
