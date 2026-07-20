@@ -9,6 +9,8 @@ You can use `python-keycloak`, `requests`, `httpx`, or roll your own.
 No requirement — pick whatever fits your approach.
 """
 
+from __future__ import annotations
+import httpx
 
 class KeycloakClient:
     def __init__(self, base_url: str, realm: str, client_id: str, client_secret: str):
@@ -16,10 +18,27 @@ class KeycloakClient:
         self.realm = realm
         self.client_id = client_id
         self.client_secret = client_secret
+        self._token : str | None = None
+        self._client = httpx.Client(timeout=10.0)
 
     def get_token(self) -> str:
-        # TODO: implement client_credentials token fetch
-        raise NotImplementedError
+        if self._token is not None:
+            return self._token
+        
+        url = f"{self.base_url}/realms/{self.realm}/protocol/openid-connect/token"
+        resp = self._client.post(
+           url,
+           data={
+              "grant_type": "client_credentials",
+              "client_id": self.client_id,
+              "client_secret": self.client_secret,
+
+           },
+        )
+        resp.raise_for_status()
+        self._token = resp.json()["access_token"]
+        return self._token
+      
 
     def list_users(self):
         # TODO: implement paginated user listing
