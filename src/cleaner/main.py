@@ -75,13 +75,36 @@ def main() -> int:
         if inactive_days >= config.inactivity_days:
             candidates.append((user, inactive_days))
 
-    print(f"Scanned {total} users. {len(candidates)} candidates. "
-          f"{skipped_unknown} skipped (unknown activity).", file=sys.stderr)
+    print(
+        f"Scanned {total} users. {len(candidates)} candidates. "
+        f"{skipped_unknown} skipped (unknown activity).",
+        file=sys.stderr,
+    )
+
+    succeeded = []
+    failed = []
 
     for user, days in candidates:
         print(f"  candidate: {user['username']} (inactive {days} days)", file=sys.stderr)
 
-    return 0
+        if config.dry_run:
+            continue
+
+        try:
+            client.delete_user(user["id"])
+            succeeded.append(user["username"])
+        except Exception as exc:
+            print(f"  FAILED to disable {user['username']}: {exc}", file=sys.stderr)
+            failed.append(user["username"])
+
+    print(
+        f"SUMMARY realm={config.realm} dry_run={config.dry_run} "
+        f"scanned={total} candidates={len(candidates)} "
+        f"disabled={len(succeeded)} failed={len(failed)}",
+        file=sys.stderr,
+    )
+
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
