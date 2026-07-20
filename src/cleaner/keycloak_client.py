@@ -41,8 +41,30 @@ class KeycloakClient:
       
 
     def list_users(self):
-        # TODO: implement paginated user listing
-        raise NotImplementedError
+        first = 0
+        page_size = 100
+        base = f"{self.base_url}/admin/realms/{self.realm}/users"
+        headers = {"Authorization" : f"Bearer {self.get_token()}"}
+
+        while True:
+           resp = self._client.get(
+             base,
+             headers=headers,
+             params={"first" : first, "max": page_size, "briefRepresentation": "false"},    
+           )
+            
+           resp.raise_for_status()
+           page = resp.json()
+
+           if not page:
+               return
+           for user in page:
+              yield  user
+
+           if len(page) < page_size:
+             return
+           first += page_size
+                  
 
     def delete_user(self, user_id: str) -> None:
         # TODO: implement user deletion (or soft-delete via disable — your call)
