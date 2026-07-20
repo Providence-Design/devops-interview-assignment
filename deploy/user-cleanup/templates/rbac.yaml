@@ -1,0 +1,15 @@
+{{/*
+This is the in-cluster Kubernetes RBAC for the pod's ServiceAccount - not
+to be confused with the Keycloak realm-management roles the job's
+Keycloak client uses to call the Admin API (those are granted inside
+Keycloak, via keycloak/grant-service-account-roles.sh, and are out of
+scope for this chart).
+
+The CronJob doesn't talk to the Kubernetes API at all - it only calls
+Keycloak's HTTP API - so no Role/RoleBinding is created here. This file
+exists to make that omission a deliberate decision instead of a silent
+gap: if a future need arises (e.g. reading a Secret via the K8s API
+instead of an env var, or emitting Events), grant the minimum Role here
+rather than defaulting the ServiceAccount to `cluster-admin` or reusing
+an existing broad role.
+*/}}

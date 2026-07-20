@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "user-cleanup.fullname" . }}-config
+  labels:
+    {{- include "user-cleanup.labels" . | nindent 4 }}
+data:
+  # Non-secret config only. Per-realm knobs live here; the client secret
+  # never does (see secret.yaml). This is what changes per-tenant when
+  # this chart is installed again for a different realm.
+  KEYCLOAK_URL: {{ .Values.keycloak.url | quote }}
+  KEYCLOAK_REALM: {{ .Values.keycloak.realm | quote }}
+  KEYCLOAK_CLIENT_ID: {{ .Values.keycloak.clientId | quote }}
+  INACTIVITY_DAYS: {{ .Values.policy.inactivityDays | quote }}
+  DRY_RUN: {{ .Values.policy.dryRun | quote }}
+  CLEANUP_ACTION: {{ .Values.policy.action | quote }}
+  EXCLUSIONS: {{ .Values.policy.exclusions | quote }}

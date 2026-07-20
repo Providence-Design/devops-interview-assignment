@@ -1,0 +1,60 @@
+# Default values for the user-cleanup CronJob.
+# This chart is single-realm on purpose (see README "tenant-aware seam").
+# For multiple realms, this same chart is installed once per realm/tenant
+# with a different release name and a different `keycloak.realm` +
+# `keycloak.existingSecret`, not extended internally to loop over realms.
+
+image:
+  repository: ghcr.io/your-org/user-cleanup
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+schedule: "0 3 * * *"  # daily at 03:00 - inactivity is measured in days, so hourly runs buy nothing
+concurrencyPolicy: Forbid  # never let two cleanup runs race against the same realm
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 5
+backoffLimit: 2  # a couple of retries for transient Keycloak/network blips, then surface the failure
+activeDeadlineSeconds: 600
+
+keycloak:
+  url: "http://keycloak.keycloak.svc.cluster.local:8080"
+  realm: "acme"
+  clientId: "user-cleanup-service"
+  # The client secret is never set directly here. `existingSecret` names a
+  # Kubernetes Secret (key: client-secret) that something else manages -
+  # ExternalSecrets pulling from Vault/AWS Secrets Manager in a real
+  # environment, or `kubectl create secret` for this exercise. See
+  # secret.yaml for the External Secrets Operator shape, commented out.
+  existingSecret: "user-cleanup-keycloak-secret"
+  existingSecretKey: "client-secret"
+
+policy:
+  inactivityDays: 120
+  dryRun: true          # flip to false deliberately, after reviewing at least one dry-run's candidate list
+  action: "disable"     # "disable" (reversible) or "delete" (irreversible) - see README
+  exclusions: "admin,break-glass"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+serviceAccount:
+  create: true
+  name: ""  # defaults to the release fullname if empty
+  annotations: {}
+
+# If this chart is deployed via ArgoCD alongside a Keycloak Application,
+# set this so the CronJob syncs after Keycloak is up. Left empty (no
+# annotation) by default since sync order is a deployment-topology
+# decision, not something this chart should assume.
+argocd:
+  syncWave: ""
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
