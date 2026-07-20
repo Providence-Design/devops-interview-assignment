@@ -9,6 +9,10 @@ dependencies = [
     # "python-keycloak>=4.0",
     # "python-dotenv>=1.0",
 ]
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
 
 [build-system]
 requires = ["setuptools>=61"]
