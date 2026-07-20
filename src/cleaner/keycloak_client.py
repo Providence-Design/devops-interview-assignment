@@ -67,5 +67,12 @@ class KeycloakClient:
                   
 
     def delete_user(self, user_id: str) -> None:
-        # TODO: implement user deletion (or soft-delete via disable — your call)
-        raise NotImplementedError
+        """Disable the user (reversible) other than hard-deleting them
+        See README for why: an unattended CronJob doing irreverisble 
+        deletes with no human review is a bad paring
+        """
+        url = f"{self.base_url}/admin/realms/{self.realm}/users/{user_id}"
+        headers = {"Authorization" : f"Bearer {self.get_token()}" }
+        resp = self._client.put(url, headers=headers, json={"enabled": False})
+        resp.raise_for_status()
+    
