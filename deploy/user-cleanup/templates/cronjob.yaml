@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "user-cleanup.fullname" . }}
+  labels:
+    {{- include "user-cleanup.labels" . | nindent 4 }}
+  {{- with .Values.argocd.syncWave }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ . | quote }}
+  {{- end }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            {{- include "user-cleanup.labels" . | nindent 12 }}
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          serviceAccountName: {{ include "user-cleanup.serviceAccountName" . }}
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: user-cleanup
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["python", "-m", "cleaner.main"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "user-cleanup.fullname" . }}-config
+              env:
+                - name: KEYCLOAK_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.keycloak.existingSecret }}
+                      key: {{ .Values.keycloak.existingSecretKey }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

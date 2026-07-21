@@ -1,105 +1,120 @@
-# Keycloak Stale-User Cleanup: Take-home Exercise
+# Keycloak Stale-User Cleanup
 
-Design and ship a mechanism that cleans up users inactive for a configurable period (default 120 days) on Kubernetes. We assess how you deliver it, not whether you match a canonical solution.
-
-## The whole job
-
-1. Build cleanup logic against the seeded `acme` realm (see `keycloak/`)
-2. Ship a Helm chart or manifests in [`deploy/`](deploy/) so it can run on Kubernetes
-3. Write a one-page README in your repo covering the six points below
-4. Optionally, send us feedback on the exercise — copy the [`FEEDBACK.md`](FEEDBACK.md) template into your submission email (see [Submitting](#submitting))
-
-**Time cap.** If you already know this stack, a working version is roughly a day. If parts are new to you, take up to three days — treat that as a hard ceiling, not a target. You have one calendar week to *submit*: we know you have a job and responsibilities outside this and that the exercise is unpaid, so the week is there to fit it around your schedule, not to spend a week on it. Polish is not required; spend any spare time understanding what you shipped well enough to walk us through it.
-
-## Your one-page README covers
-
-1. Approach chosen, approaches rejected, reasoning
-2. How this deploys on K8s (points at `deploy/`)
-3. Where per-realm config lives, and safety rails (exclusions, dry-run, audit)
-4. How the design would extend to many realms. You don't build it. Show the seam.
-5. One thing you'd change in production
-6. AI usage. Five to ten lines. Where AI helped, where you accepted its output, where you overrode it.
+Take-home submission for the AmaliTech DevOps IAM role.
 
 ## Getting started
 
-```bash
-cp .env.example .env
-make up            # Starts Keycloak + Postgres, imports the realm, seeds login data
-make grant-roles   # Grants the service account the realm-management roles
-```
+    cp .env.example .env
+    make up            # Starts Keycloak + Postgres, imports the realm, seeds login data
+    make grant-roles   # Grants the service account the realm-management roles
 
-Keycloak: `http://localhost:8080`, admin / admin. Realm: `acme`.
+Run the cleaner (dry run by default):
 
-Optional, only if you want to test manifests against a real cluster:
-```bash
-make kind-up
-```
+    python3 -m venv .venv && source .venv/bin/activate
+    pip install -e .
+    python -m cleaner.main
 
-## What we assess
+Run the tests:
 
-| Assessed | Not assessed |
-|---|---|
-| Approach choice and trade-off reasoning | Whether your Helm chart passes `helm lint` |
-| OAuth2 fluency (correct client, correct grant) | Whether the container image builds |
-| Deploy shape in `deploy/` (Helm or manifests, applyable) | Test coverage, CI, Dockerfile polish |
-| Safety rails (exclusions, dry-run, audit) | Multi-tenancy implementation |
-| Tenant-aware seam in the design | Production hardening |
-| AI usage maturity (specific, not generic) | Polish |
-| Walkthrough performance | Matching a canonical answer |
+    pytest tests/ -v
 
-New to parts of the stack? Fine. Say so in your README, and show us how you learned it.
+Deploy (needs a real cluster and the existing Secret created first):
 
-## The `deploy/` directory is graded
+    kubectl create secret generic user-cleanup-keycloak-secret \
+      --from-literal=client-secret=<your-secret>
+    helm install user-cleanup deploy/user-cleanup/
 
-This is where we see your Helm and IaC fluency. Skipping it costs you a whole rubric axis. Details in [`deploy/README.md`](deploy/README.md).
+## 1. Approach chosen, approaches rejected
 
-## AI use
+**Signal for "last login":** the `lastLogin` custom user attribute, stored as
+Unix epoch milliseconds (confirmed against real seed data, not assumed).
+Reading it costs nothing extra, it comes back on the same `list_users()`
+call as everything else. I considered the events API instead, but that
+would mean a second request per user (N+1) for the same answer, so I
+didn't use it. In a real deployment, this attribute would need to be
+written by something on every login; a login-flow SPI is scaffolded in
+`spi/` for that; the seed data stands in for it here.
 
-Allowed and encouraged. This role will involve working with AI tools going forward, so we want to see you use them well.
+**Disable, not delete.** The job disables stale users (`enabled: false`)
+by default rather than hard-deleting them. Disabling is reversible; delete
+is not. An unattended CronJob with delete permissions and no human review
+is a bad pairing for something as consequential as removing an identity.
+`CLEANUP_ACTION` is configurable to `delete` for teams that want a hard
+purge, but that's an explicit opt-in, not the default.
 
-In the walkthrough we ask where AI helped, where you accepted its output, and where you pushed back. This isn't a big part of the score — we just want a specific answer over a generic one. What matters far more is that you can explain and defend the code you shipped, whoever or whatever wrote the first draft.
+**Unknown activity is never a candidate.** A user with a missing or
+unparseable `lastLogin` is skipped, not treated as "old enough to clean
+up." Silently deleting someone because the job couldn't read their
+activity data would be the wrong failure mode for something with delete
+permissions.
 
-## What's in this repo
+## 2. Kubernetes deployment
 
-```
-.
-├── docker-compose.yml           Keycloak + Postgres, realm auto-imported
-├── Makefile                     Common commands (run `make help`)
-├── .env.example                 Copy to .env
-├── kind/                        Optional Kind cluster config
-├── keycloak/                    Seeded realm + role-grant script
-├── src/cleaner/                 Python skeleton (only if you go Python)
-├── deploy/                      GRADED. Your chart or manifests go here.
-├── spi/                         Placeholder if you go Java SPI
-├── pyproject.toml
-└── FEEDBACK.md                  Please fill in
-```
+Helm chart in [`deploy/user-cleanup/`](deploy/user-cleanup/): a `CronJob`
+(`concurrencyPolicy: Forbid` so two runs can't race the same realm, daily
+schedule since inactivity is measured in days), a `ConfigMap` for
+non-secret per-realm config, a `ServiceAccount`, and a `secretKeyRef` to
+an existing Secret for the Keycloak client credential — never a hardcoded
+value in `values.yaml`. `templates/secret.yaml` documents the External
+Secrets Operator shape I'd use in production, left as a comment rather
+than a live resource since committing a concrete `secretStoreRef` assumes
+a specific secrets backend this chart shouldn't hard-couple to.
 
-## About the seeded `lastLogin` attribute
+## 3. Config location and safety rails
 
-Keycloak does not natively expose "last login time" as a first-class field. In production you'd use event queries, a login-flow authenticator, or user federation. For this exercise `make up` seeds a `lastLogin` custom attribute on each user (and a matching real `LOGIN` event, if you'd rather query events) so you can focus on cleanup logic. Ages are computed relative to now, so they don't go stale. See [`keycloak/README.md`](keycloak/README.md) for the users and their ages, and mention this simplification in your own README.
+Per-realm config (`realm`, `inactivityDays`, `exclusions`, `action`) lives
+in `values.yaml` → rendered into the `ConfigMap`. The client secret never
+touches either it's a `secretKeyRef` to a Secret this chart doesn't own.
 
-## Submitting
+Safety rails: `dryRun: true` by default, must be flipped deliberately;
+exclusions matched case-insensitively; service-account users always
+excluded regardless of the list; every run emits a structured summary
+line (`SUMMARY realm=... dry_run=... scanned=... candidates=...
+disabled=... failed=...`) as the audit trail. One user's API failure
+doesn't abort the run — it's caught, logged, and reflected in the
+summary's `failed` count.
 
-Push your work to a repo on your own GitHub account — fork this one or start a fresh repo (a fork's git history is a small extra signal, since it shows how you work). Zip is fine if a repo is inconvenient.
+## 4. Multi-realm seam
 
-**Submit by replying to the take-home email thread with:**
+One Helm release per realm distinguished by release name,
+`keycloak.realm`, and `keycloak.existingSecret`. I didn't build a
+loop-over-realms mode inside the job itself: different realms plausibly
+want different schedules and thresholds, and one realm's Keycloak being
+down shouldn't block another realm's cleanup. A `values-<realm>.yaml` per
+tenant gets you there without touching the Python. The seam is the Helm
+values interface, not code inside `main.py`.
 
-- a link to your GitHub repo
-- optionally, your feedback on this exercise — paste the [`FEEDBACK.md`](FEEDBACK.md) template into the email and fill it in there
+## 5. One thing I'd change in production
 
-Keep feedback in the email, not in your repo: it stays separate from the work we assess, and it's genuinely useful to us. We book the 60-minute walkthrough within a few working days of your submission.
+Move `lastLogin` off the manually-seeded attribute onto a real signal:
+the login-flow SPI in `spi/`, or the events API with a documented
+retention assumption. The seeded attribute is an explicit simplification
+for this exercise; shipping it as-is would mean the job silently stops
+finding new stale users the moment nothing else is writing that
+attribute.
 
-## Questions
+## 6. AI usage
 
-Reply to the email thread. Raising questions early is a JD line we mean. Don't sit on ambiguity.
+I used Claude throughout, in a back-and-forth session rather than accepting
+a single generated dump. For src/cleaner/, I was given draft
+implementations for get_token, list_users, and the disable-based
+delete_user, which I typed in and ran myself against my local seeded
+Keycloak rather than trusting them unread, that's how I caught that
+lastLogin is stored as Unix epoch milliseconds, not an ISO date string as
+the first draft assumed; I only found that by inspecting the real API
+response and had the parsing logic corrected before it went further. I
+also introduced and fixed my own bug (a missing comma in the token
+request payload) with AI's help reading the traceback, rather than it
+writing that code error-free on the first pass.
 
-## Done
-
-Your submission is complete when:
-
-- [ ] The code runs against the seeded Keycloak and does what your README says
-- [ ] `deploy/` contains an applyable Helm chart or manifest set
-- [ ] Your one-page README covers all six points above
-- [ ] The AI usage section is specific enough that we could pick which parts you wrote
-- [ ] You've replied to the email thread with your repo link (and optionally the feedback template)
+The disable-vs-delete decision was mine, made deliberately: I asked
+specifically for the trade-offs of each before choosing, rather than
+accepting whichever the first draft defaulted to. Where I'd push back
+in a real work setting the same way: I would want to sanity-check the
+Helm chart's resource limits and CronJob schedule against real usage
+patterns before trusting them in production, since those were reasonable
+defaults, not measured ones. I also debugged a chain of local environment
+issues myself (pip version, Python 3.9 vs the 3.11 requirement, a
+conda/venv conflict) with AI's help interpreting error messages, since
+those were specific to my machine and not something a generated draft
+could have anticipated.
