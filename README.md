@@ -1,12 +1,38 @@
+# Keycloak Stale-User Cleanup
+
+Take-home submission for the AmaliTech DevOps IAM role.
+
+## Getting started
+
+    cp .env.example .env
+    make up            # Starts Keycloak + Postgres, imports the realm, seeds login data
+    make grant-roles   # Grants the service account the realm-management roles
+
+Run the cleaner (dry run by default):
+
+    python3 -m venv .venv && source .venv/bin/activate
+    pip install -e .
+    python -m cleaner.main
+
+Run the tests:
+
+    pytest tests/ -v
+
+Deploy (needs a real cluster and the existing Secret created first):
+
+    kubectl create secret generic user-cleanup-keycloak-secret \
+      --from-literal=client-secret=<your-secret>
+    helm install user-cleanup deploy/user-cleanup/
+
 ## 1. Approach chosen, approaches rejected
 
 **Signal for "last login":** the `lastLogin` custom user attribute, stored as
 Unix epoch milliseconds (confirmed against real seed data, not assumed).
-Reading it costs nothing extra it comes back on the same `list_users()`
+Reading it costs nothing extra, it comes back on the same `list_users()`
 call as everything else. I considered the events API instead, but that
 would mean a second request per user (N+1) for the same answer, so I
 didn't use it. In a real deployment, this attribute would need to be
-written by something on every login a login-flow SPI is scaffolded in
+written by something on every login; a login-flow SPI is scaffolded in
 `spi/` for that; the seed data stands in for it here.
 
 **Disable, not delete.** The job disables stale users (`enabled: false`)
@@ -60,7 +86,7 @@ values interface, not code inside `main.py`.
 
 ## 5. One thing I'd change in production
 
-Move `lastLogin` off the manually-seeded attribute onto a real signal
+Move `lastLogin` off the manually-seeded attribute onto a real signal:
 the login-flow SPI in `spi/`, or the events API with a documented
 retention assumption. The seeded attribute is an explicit simplification
 for this exercise; shipping it as-is would mean the job silently stops
@@ -73,7 +99,7 @@ I used Claude throughout, in a back-and-forth session rather than accepting
 a single generated dump. For src/cleaner/, I was given draft
 implementations for get_token, list_users, and the disable-based
 delete_user, which I typed in and ran myself against my local seeded
-Keycloak rather than trusting them unread that's how I caught that
+Keycloak rather than trusting them unread, that's how I caught that
 lastLogin is stored as Unix epoch milliseconds, not an ISO date string as
 the first draft assumed; I only found that by inspecting the real API
 response and had the parsing logic corrected before it went further. I
